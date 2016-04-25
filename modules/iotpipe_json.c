@@ -1,6 +1,6 @@
 // ----------------------------------------------------------------------------
-// File: jit_json_utils.c
-// Copyright (c) 2015 JIT. All Right Reserved
+// File: iotpipe_json.c
+// Copyright (c) 2015 IoT Pipe. All Right Reserved
 // This file contains the definitions of methods used to handle json strings
 // ----------------------------------------------------------------------------
 
@@ -10,13 +10,92 @@
 
 #include "iotpipe_utils.h"
 #include "iotpipe_json.h"
+#include "iotpipe_gpio.h"
 #include "osapi.h"
 #include "mem.h"
+#include "string.h"
+
+bool ICACHE_FLASH_ATTR init_json()
+{
+	json_head = (json_node_t*)os_malloc(sizeof(json_node_t));
+	if(json_head==NULL)
+		return false;
+	else
+	{
+		json_head->next=NULL;	
+	}
+	return true;
+}
+
+
+bool ICACHE_FLASH_ATTR createJsonForScan(char *buf, int bufLength)
+{
+
+	if(bufLength<=2)
+	{
+		LOG_DEBUG("Buffer must have at least a length of 2.");
+		return false;
+	}
+
+	if( gpio_head==NULL)
+	{
+		LOG_DEBUG("GPIO HEAD EMPTY");
+		strcat(buf,"{}");
+		return true;
+	}	
+
+
+	gpio_node_t *gpio_node = gpio_head->next;
+	bool success;
+	bool atleastOneInput = false;
+
+	bool scan_success = gpio_scan();
+	LOG_DEBUG("SCANNED!!!!!");
+	if(scan_success==false)
+	{
+		LOG_DEBUG("Failed to scan GPIOs.");
+		return false;
+	}
+
+	while(gpio_node!=NULL)
+	{
+		if(gpio_node->gpio_type==0)
+		{
+			success = add_json_node(gpio_node->portName, gpio_node->value);
+			if(success==false)
+			{
+				LOG_DEBUG("Failed to construct json node");
+				return false;
+			}
+			atleastOneInput = true;
+		}
+		gpio_node=gpio_node->next;
+	}
+
+	if(atleastOneInput == false)
+	{
+		LOG_DEBUG("Was not at least one input");
+		strcat(buf,"{}");
+		return true;
+
+	}
+	success = stringify(buf, bufLength);
+	free_json();
+	return success;
+}
+
+
+
+
 
 //Prints out the key value pairs
-void print_json(json_node_t *head)
+static void ICACHE_FLASH_ATTR print_json()
 {
-	json_node_t *node = head->next;
+	json_node_t *node = json_head->next;
+
+	if(node!=NULL)
+		LOG_DEBUG("-------------------------------------------");
+
 	while(node!=NULL)
 	{
 		LOG_DEBUG_ARGS("(%s,%s)",node->key,node->value);
@@ -24,10 +103,17 @@ void print_json(json_node_t *head)
 	}
 }
 
-bool add_json_node(json_node_t *head, char *key, char *value)
+static bool ICACHE_FLASH_ATTR add_json_node(char *key, int value)
 {
+
+	//convert integer to string
+	char buf[16];
+	flatten_string(buf,16);
+	itoa(value,buf);
+
+
 	//find end of list
-	json_node_t *node = head;
+	json_node_t *node = json_head;
 	while(node->next!=NULL)
 		node=node->next;	
 
@@ -38,40 +124,35 @@ bool add_json_node(json_node_t *head, char *key, char *value)
 
 	if(strlen(key)>max_key_length)
 	{
-		LOG_ERROR_ARGS("Key length too long: %s", key);
+		LOG_DEBUG_ARGS("Key length too long: %s", key);
 		return false;
 	}
-	if(strlen(value)>max_value_length)
-	{
-		LOG_ERROR_ARGS("Value length too long: %s", value);
-		return false;
-	}
+	
 	//add info to the new node
 	strcpy(new_node->key,key);
-	strcpy(new_node->value,value);
+	strcpy(new_node->value,buf);
 	new_node->next = NULL; 
 	node->next = new_node;
 	return true;
 }
 
-bool stringify(json_node_t * head, char *json_string, int max_len)
+static bool ICACHE_FLASH_ATTR stringify(char * buffer, int bufLen)
 {
-	if(head==NULL)
+	if(json_head==NULL)
 	{
-		LOG_ERROR("Canot turn json into string.  linked list is empty");
-		strcat(json_string,"{\"error\":\"Couldn't create json string because json structure was empty.\"}");
+		LOG_DEBUG("Canot turn json into string.  linked list is empty");
 		return false;
 	}
 	
-	if(head->next==NULL)
+	if(json_head->next==NULL)
 	{
-		strcat(json_string,"{}");
+		strcat(buffer,"{}");
 		return true;
 	}
 
 
 	//Compute length of the about-to-be-made json string
-	json_node_t *node = head;
+	json_node_t *node = json_head;
 	int length = 0;
 	int numPairs = 0;
 	while(node!=NULL)
@@ -86,42 +167,44 @@ bool stringify(json_node_t * head, char *json_string, int max_len)
 	length+=numPairs; //add colons, 1 for each k,v pair;
 	length+=numPairs; // add commas for each k,v pair
 	
-	if(length > max_len)
+	if(length > bufLen)
 	{
-		LOG_ERROR("Canot turn json into string.  buffer isn't long enough");
-		strcat(json_string,"{\"error\":\"Couldn't create json string because it was longer than available buffer\"}");
+		LOG_DEBUG("Canot turn json into string.  buffer isn't long enough");
 		return false;
 	}
 	//Start us off
 	int i;
 	for(i = 0; i < length; i++)
-		json_string[i]='\0';
+		buffer[i]='\0';
 
 	int total_length = 0;
 	
-	json_string[total_length++]='{';
-	node = head->next;
+	buffer[total_length++]='{';
+	node = json_head->next;
 	while(node!=NULL)
 	{
-		json_string[total_length++]='\"';
-		strcat(&json_string[total_length],node->key);
+		buffer[total_length++]='\"';
+		strcat(&buffer[total_length],node->key);
 		total_length+=strlen(node->key);
-		json_string[total_length++]='\"';
-		json_string[total_length++]=':';
-		json_string[total_length++]='\"';
-		strcat(&json_string[total_length],node->value);
+		buffer[total_length++]='\"';
+		buffer[total_length++]=':';
+		buffer[total_length++]='\"';
+		strcat(&buffer[total_length],node->value);
 		total_length+=strlen(node->value);
-		json_string[total_length++]='\"';
-		json_string[total_length++]=',';
+		buffer[total_length++]='\"';
+		buffer[total_length++]=',';
 		node=node->next;
 	}		
-	json_string[--total_length]='}';
+	buffer[--total_length]='}';
+
+
 	return true;
 }
 
-void free_json(json_node_t *head)
+//Frees the json linked list, except for the head, which is re-used
+static void ICACHE_FLASH_ATTR free_json()
 {
-	json_node_t *conductor = head;
+	json_node_t *conductor = json_head->next;
 	json_node_t *temp;
 	while(conductor!=NULL)
 	{
@@ -129,8 +212,5 @@ void free_json(json_node_t *head)
 		conductor = conductor->next;
 		os_free(temp);
 	}
-	head=NULL;
-	
 }
-
 

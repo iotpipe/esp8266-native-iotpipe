@@ -10,18 +10,20 @@
 #include "osapi.h"
 #include "user_interface.h"
 
-//enumeration of available debug levels
-//Low - Errors and MQTT debug stuff only
-//High - Everything
-typedef enum {DEBUG_OFF=0, DEBUG_LOW, DEBUG_HIGH} debug_level;
-//Global value of debug verbosity
-uint8_t debug_verbosity;
 
-#define LOG_DEBUG(message)		do { if(debug_verbosity==DEBUG_HIGH) {os_printf("[JIT-DEBUG] %d", message); os_printf("\r\n");}  } while (0)
-#define LOG_DEBUG_ARGS(message, args...)		do { if(debug_verbosity==DEBUG_HIGH) {os_printf("[JIT-DEBUG] "); os_printf(message, args); os_printf("\r\n");} } while (0)
 
-#define LOG_ERROR(message)		do { if(debug_verbosity>=DEBUG_LOW) {os_printf("[JIT-ERROR] %s", message); os_printf("\r\n");} } while (0)
-#define LOG_ERROR_ARGS(message, args...)		do { if(debug_verbosity>=DEBUG_LOW) {os_printf("[JIT-ERROR] "); os_printf(message, args); os_printf("\r\n");} } while (0)
+// TODO: Add conditions to remove logging in non-debug builds
+#define LOG_DEBUG(message)		do { os_printf("[JIT-DEBUG] %s", message); os_printf("\r\n"); } while (0)
+#define LOG_DEBUG_ARGS(message, args...)		do { os_printf("[JIT-DEBUG] "); os_printf(message, args); os_printf("\r\n"); } while (0)
+
+#define LOG_INFO(message)		do { os_printf("[JIT-INFO] %s", message); os_printf("\r\n"); } while (0)
+#define LOG_INFO_ARGS(message, args...)		do { os_printf("[JIT-INFO] "); os_printf(message, args); os_printf("\r\n"); } while (0)
+
+#define LOG_WARNING(message)		do { os_printf("[JIT-WARNING] %s", message); os_printf("\r\n"); } while (0)
+#define LOG_WARNING_ARGS(message, args...)	do { os_printf("[JIT-WARNING] "); os_printf(message, args); os_printf("\r\n"); } while (0)
+
+#define LOG_ERROR(message)		do { os_printf("[JIT-ERROR] %s", message); os_printf("\r\n"); } while (0)
+#define LOG_ERROR_ARGS(message, args...)		do { os_printf("[JIT-ERROR] "); os_printf(message, args); os_printf("\r\n"); } while (0)
 
 
 #define IF_NULL_RETURN_FALSE(value, message)	\

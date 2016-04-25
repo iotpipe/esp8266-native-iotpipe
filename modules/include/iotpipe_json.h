@@ -18,15 +18,23 @@ typedef struct json_node {
 	struct json_node *next;
 } json_node_t;
 
+json_node_t *json_head;
+
+//Initializes the head of the json node
+bool ICACHE_FLASH_ATTR init_json();
 
 //Makes it easy to add nodes to a json object
-bool add_json_node(json_node_t *head, char *key, char *value);
+static bool ICACHE_FLASH_ATTR add_json_node(char *key, int value);
 
-//Converts json object into string.  <-- not implemented
-bool stringify(json_node_t * head, char * buffer, int len);
+//Converts json object into string.  
+static bool ICACHE_FLASH_ATTR stringify(char * buffer, int len);
 
 //frees memory of jsob object
-void free_json(json_node_t *head);
+static void ICACHE_FLASH_ATTR free_json();
 
 //prints json
-void print_json(json_node_t *head);
+static void ICACHE_FLASH_ATTR print_json();
+
+//Public facing function
+bool ICACHE_FLASH_ATTR createJsonForScan(char *buf, int bufLength);
+

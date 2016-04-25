@@ -3,33 +3,107 @@
 #include "string.h"
 #include "mem.h"
 
-bool ICACHE_FLASH_ATTR setPortAsInputWithName(int portNum, char *portName)
+//we pick a different name to not be confused with gpio_init() in gpio.h
+bool ICACHE_FLASH_ATTR init_gpio()
 {
-	bool success = addNode(portNum, portName, 0);
+	gpio_head = (gpio_node_t*)os_malloc(sizeof(gpio_node_t));
+	if(gpio_head==NULL)
+		return false;
+	else
+	{
+		gpio_head->next=NULL;	
+		gpio_head->portNumber=-1;
+		gpio_head->portName=(char *)os_zalloc(sizeof(char));
+		gpio_head->value=-1;
+	}
+	return true;
 
+}
+
+//Checks if port # is a valid GPIO for the ESP8266
+static bool ICACHE_FLASH_ATTR isValidGPIO(int portNum)
+{
 	int index = getIndex(portNum);
 	if(index==-1)
 	{
-		LOG_DEBUG_ARGS("GPIO %d is not a valid GPIO", portNum);
 		return false;
 	}
+	return true;
+}
 
+//GPIOs of the same type cannot have the same name
+static bool ICACHE_FLASH_ATTR isPortNameValid(char *portName, int type)
+{
+	gpio_node_t *node = gpio_head;
+	while(node->next!=NULL)
+	{
+		if ( strcmp(node->next->portName, portName) == 0 & node->next->gpio_type == type )
+		{
+			return false;
+		}	
+		node=node->next;
+	}
+}
+
+
+bool ICACHE_FLASH_ATTR setPortAsInputWithName(int portNum, char *portName)
+{
+	
+	if( !isValidGPIO(portNum) )
+	{
+		LOG_DEBUG_ARGS("GPIO%d is not valid.",portNum);
+		return false;
+	}
+	
+	if ( !isPortNameValid(portName,INPUT) )	
+	{
+		LOG_DEBUG_ARGS("Failed to set GPIO%d as input.  Portname of (%s) is already assigned to a port of type %d", portNum, portName, INPUT);
+		return false;
+	}	
+	
+	
+	bool success = addNode(portNum, portName,INPUT);
+	if(success==false)
+		return false;
+
+	int index = getIndex(portNum);
 	PIN_FUNC_SELECT(pin_mux[index],pin_func[index]); 
 	PIN_PULLUP_DIS(pin_mux[index]);
 	gpio_output_set(0,0,0,pin_num[index]);
+	
 	return true;
-
 }
 
 
 bool ICACHE_FLASH_ATTR setPortAsOutputWithName(int portNum, char *portName)
 {
+	if( !isValidGPIO(portNum) )
+	{
+		LOG_DEBUG_ARGS("GPIO%d is not valid.",portNum);
+		return false;
+	}
+
+	if ( !isPortNameValid(portName, OUTPUT) )	
+	{
+		LOG_DEBUG_ARGS("%s is already assigned to a port of type %d", portName, OUTPUT);
+		return false;
+	}
+
+	bool success = addNode(portNum, portName, OUTPUT);
+	if(success==false)
+		return false;
+
+	int index = getIndex(portNum);
+	PIN_FUNC_SELECT(pin_mux[index],pin_func[index]); 
+	gpio_output_set(0, 0, 1 << portNum, 0); // enable pin as output - See more at: http://www.esp8266.com/viewtopic.php?f=6&t=1033#sthash.kNUniUri.dpuf	
+	return true;
+
 
 }
 
 bool ICACHE_FLASH_ATTR setPortAsInterruptableWithName(int portNum, char *portName)
 {
-
+	LOG_DEBUG("Interrupt not yet supported.");
 }
 
 static int ICACHE_FLASH_ATTR getIndex(int portNum)
@@ -53,50 +127,97 @@ static bool ICACHE_FLASH_ATTR addNode(int portNumber, char *portName, int type)
 	{
 		char buf1[16];
 		char buf2[16];
+		flatten_string(buf1,16);
+		flatten_string(buf2,16);
 
 		itoa(portNumber,buf1);		
 
 		strcat(buf2,"GPIO");
 		strcat(buf2,buf1);
-	
+		portName = (char *)os_zalloc(sizeof(char)*16);
 		strcpy(portName,buf2);
 		
 	}
 
 
-	iotpipe_node_t *node;
-	node = node_head;
+	gpio_node_t *conductor;
+	conductor = gpio_head;
 	bool portAlreadyExists = false;
-	while(node!=NULL)
+
+	while(conductor->next!=NULL)
 	{
-		//We either find the port already exists in our list, and we update it, or we go to end of list and create a new node
-		if(node->portNumber == portNumber)
+		if(conductor->next->portNumber==portNumber)
 		{
 			portAlreadyExists = true;
+			conductor=conductor->next;
 			break;
 		}
-		node=node->next;	
+		conductor=conductor->next;
 	}
 
-	if(portAlreadyExists == false)
+	if(portAlreadyExists)
 	{
-		node = (iotpipe_node_t *)os_malloc( sizeof(iotpipe_node_t) );
-		if(node==NULL)
+		strcpy(conductor->portName,portName);
+		conductor->gpio_type=type;		
+	}
+	else
+	{
+		gpio_node_t *newNode = (gpio_node_t*)os_malloc(sizeof(gpio_node_t));
+		newNode->portName = (char *)os_zalloc(sizeof(char)*strlen(portName)+1);
+		if(newNode->portName==NULL)
 		{
-			LOG_ERROR("Ran out of memory allocating GPIOs");
+			LOG_DEBUG("Failed to allocate memory for gpio node.");
 			return false;
 		}
-		node->next = NULL;
+		flatten_string(newNode->portName,strlen(portName));	
+		newNode->gpio_type = type;
+		strcpy(newNode->portName,portName);
+		newNode->portNumber = portNumber;
+		newNode->value=-1;
+		newNode->next=NULL;
+		conductor->next = newNode;
 	}
 
-	node->portNumber = portNumber;	
-	if(portName==NULL)
-		node->portName=NULL;
-	else
-		strcpy(node->portName, portName);
-
-	node->gpio_type = 0;
-
-
 	return true;
+}
+
+
+bool gpio_scan()
+{
+
+	gpio_node_t *node = gpio_head->next;
+	int index;
+	while(node!=NULL)
+	{
+		index = getIndex(node->portNumber);
+		if(index==-1)
+		{
+			LOG_DEBUG_ARGS("GPIO %d is not a valid GPIO", node->portNumber);
+			return false;
+		}
+		
+		if(node->gpio_type==0)
+		{
+			node->value = GPIO_INPUT_GET(pin_num[index]);
+		}
+		node=node->next;
+	}
+	return true;
+}
+
+
+void print_gpio_nodes()
+{
+	gpio_node_t *node = gpio_head->next;
+	while(node!=NULL)
+	{
+
+		if(node->gpio_type==INPUT)
+			LOG_DEBUG_ARGS("INPUT: (%d,%s)",node->portNumber,node->portName);
+		else if(node->gpio_type==INTERRUPT)
+			LOG_DEBUG_ARGS("INTERRUPT: (%d,%s)",node->portNumber,node->portName);
+		else if(node->gpio_type==OUTPUT)
+			LOG_DEBUG_ARGS("OUTPUT: (%d,%s)",node->portNumber,node->portName);
+		node=node->next;
+	}
 }

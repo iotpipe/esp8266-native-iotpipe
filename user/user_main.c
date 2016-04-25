@@ -1,32 +1,3 @@
-/* main.c -- MQTT client example
-*
-* Copyright (c) 2014-2015, Tuan PM <tuanpm at live dot com>
-* All rights reserved.
-*
-* Redistribution and use in source and binary forms, with or without
-* modification, are permitted provided that the following conditions are met:
-*
-* * Redistributions of source code must retain the above copyright notice,
-* this list of conditions and the following disclaimer.
-* * Redistributions in binary form must reproduce the above copyright
-* notice, this list of conditions and the following disclaimer in the
-* documentation and/or other materials provided with the distribution.
-* * Neither the name of Redis nor the names of its contributors may be used
-* to endorse or promote products derived from this software without
-* specific prior written permission.
-*
-* THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-* AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-* IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-* ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
-* LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-* CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-* SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-* INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-* CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-* ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-* POSSIBILITY OF SUCH DAMAGE.
-*/
 #include "iotpipe.h"
 #include "ets_sys.h"
 #include "driver/uart.h"
@@ -35,14 +6,35 @@
 #include "mem.h"
 #include "iotpipe_utils.h"
 
+#define baud_rate 115200
 
 void user_init(void)
 {
-	uart_init(115200,115200);
+	uart_div_modify(0, UART_CLK_FREQ / baud_rate); 
+	os_delay_us(10);
+
 	os_delay_us(1000000);
+	
+	iotpipe_init();
+	
+	iotpipe_addInputPort(5,"five");
+	iotpipe_addInputPort(4,"four");
+	iotpipe_addInputPort(2,"two");
+	iotpipe_addInputPort(0,"zero");
+	
+	iotpipe_addOutputPort(12,"twelve");
+	iotpipe_addOutputPort(13,"thirteen");
+	iotpipe_addOutputPort(14,"zero");
 
-	iotpipe_addInputPort(1, "asdf");
-	iotpipe_addInputPort(2,"hello");
-	iotpipe_addInputPort(1,"");
 
+	iotpipe_addOutputPort(4,"four");
+
+
+	print_gpio_nodes();
+
+	char buf[256];
+	flatten_string(buf,256);
+
+	iotpipe_scan(buf,256);	
+	LOG_DEBUG_ARGS("JSON: %s", buf);
 }
