@@ -39,6 +39,26 @@ bool iotpipe_addOutputPort(int portNum, char *portName)
 
 bool iotpipe_scan(char *buf, int bufLength)
 {
+	if( gpio_head==NULL)
+	{
+		LOG_DEBUG("GPIO HEAD EMPTY");
+		strcat(buf,"{}");
+		return true;
+	}	
+
+	gpio_node_t *gpio_node = gpio_head->next;
+	
+	bool scan_success = gpio_input_scan();
+	if(scan_success==false)
+	{
+		LOG_DEBUG("Failed to scan GPIOs.");
+		return false;
+	}
+
 	createJsonForScan(buf,bufLength);
 }
 
+bool iotpipe_update_outputs(char *jsonString)
+{
+	return gpio_update_outputs(jsonString);
+}

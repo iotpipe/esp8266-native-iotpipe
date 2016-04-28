@@ -21,5 +21,5 @@ const uint8_t pin_func[NUM_VALID_INPUT_PINS] = { FUNC_GPIO0,
 					   FUNC_GPIO15};
 
 
-
+const int pin_bit[NUM_VALID_INPUT_PINS] = {BIT0, BIT2, BIT4, BIT5, BIT12, BIT13, BIT14, BIT15};
 

@@ -3,8 +3,10 @@
 
 #include "os_type.h"
 #include "gpio_definitions.h"
+#include "jsmn.h"
 
 #define PORTNAME_LENGTH 16
+#define max_jsmn_tokens 128
 
 //Node for the linked list that stores all of the GPIOs set as inputs
 typedef struct input_node
@@ -36,6 +38,12 @@ static bool ICACHE_FLASH_ATTR isPortNameValid(char *portName, int type);
 static bool ICACHE_FLASH_ATTR isValidGPIO(int portNum);
 
 //updates value field in each node of gpio_head
-bool gpio_scan();
+bool gpio_input_scan();
+bool gpio_update_outputs(char *jsonString);
+
+//sets output pins high or low
+static void set_gpio_output_high(int portNum);
+static void set_gpio_output_low(int portNum);
+static int jsoneq(const char *json, jsmntok_t *tok, const char *s);
 
 #endif

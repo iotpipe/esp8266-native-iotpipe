@@ -37,26 +37,9 @@ bool ICACHE_FLASH_ATTR createJsonForScan(char *buf, int bufLength)
 		return false;
 	}
 
-	if( gpio_head==NULL)
-	{
-		LOG_DEBUG("GPIO HEAD EMPTY");
-		strcat(buf,"{}");
-		return true;
-	}	
-
-
 	gpio_node_t *gpio_node = gpio_head->next;
 	bool success;
 	bool atleastOneInput = false;
-
-	bool scan_success = gpio_scan();
-	LOG_DEBUG("SCANNED!!!!!");
-	if(scan_success==false)
-	{
-		LOG_DEBUG("Failed to scan GPIOs.");
-		return false;
-	}
-
 	while(gpio_node!=NULL)
 	{
 		if(gpio_node->gpio_type==0)

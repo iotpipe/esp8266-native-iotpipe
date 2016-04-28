@@ -20,4 +20,7 @@ bool iotpipe_addOutputPort(int portNum, char* portName);
 
 //Scans the input GPIOs and creates a json payload
 bool iotpipe_scan(char *buf, int bufLen);
+
+bool iotpipe_update_outputs(char *json);
+
 #endif

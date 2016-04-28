@@ -32,9 +32,9 @@ ESPPORT		?= /dev/ttyUSB0
 TARGET		= app
 
 # which modules (subdirectories) of the project to include in compiling
-MODULES = driver user modules iotpipe esp_mqtt/mqtt esp_mqtt/modules esp_mqtt/driver
+MODULES = driver user modules iotpipe esp_mqtt/mqtt esp_mqtt/modules esp_mqtt/driver jsmn/
 EXTRA_INCDIR1   = include 
-EXTRA_INCDIR2   = esp_mqtt/mqtt/include esp_mqtt/include
+EXTRA_INCDIR2   = esp_mqtt/mqtt/include esp_mqtt/include jsmn/
 
 #MODULES		= driver mqtt user modules
 #EXTRA_INCDIR    = include $(SDK_BASE)/../include

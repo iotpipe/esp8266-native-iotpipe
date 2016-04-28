@@ -2,6 +2,7 @@
 #include "iotpipe_utils.h"
 #include "string.h"
 #include "mem.h"
+#include "jsmn.h"
 
 //we pick a different name to not be confused with gpio_init() in gpio.h
 bool ICACHE_FLASH_ATTR init_gpio()
@@ -96,6 +97,10 @@ bool ICACHE_FLASH_ATTR setPortAsOutputWithName(int portNum, char *portName)
 	int index = getIndex(portNum);
 	PIN_FUNC_SELECT(pin_mux[index],pin_func[index]); 
 	gpio_output_set(0, 0, 1 << portNum, 0); // enable pin as output - See more at: http://www.esp8266.com/viewtopic.php?f=6&t=1033#sthash.kNUniUri.dpuf	
+
+	set_gpio_output_high(portNum);
+
+
 	return true;
 
 
@@ -182,7 +187,7 @@ static bool ICACHE_FLASH_ATTR addNode(int portNumber, char *portName, int type)
 }
 
 
-bool gpio_scan()
+bool gpio_input_scan()
 {
 
 	gpio_node_t *node = gpio_head->next;
@@ -206,6 +211,66 @@ bool gpio_scan()
 }
 
 
+//Scans MQTT payload and checks if any OUTPUT port is mentioned
+bool gpio_update_outputs(char *jsonString)
+{
+
+	jsmn_parser parser;
+	jsmntok_t tokens[max_jsmn_tokens];
+
+	jsmn_init(&parser);
+
+	//r is the # of tokens returned.
+	int r = jsmn_parse(&parser, jsonString, strlen(jsonString), tokens, max_jsmn_tokens);
+
+	//if r < 1 or the first token isn't a JSMN_OBJECT
+	if (r < 1 || tokens[0].type!=JSMN_OBJECT)
+	{
+		LOG_DEBUG("Nothing to be updated.");
+		return true;
+	}
+
+	int i = 0;
+	gpio_node_t *node = gpio_head->next;
+	while(node!=NULL)
+	{
+		if(node->gpio_type==OUTPUT)
+		{
+			//start at i = 1, since i = 0 is the JSMN_OBJECT token (aka the root)
+			for(i = 1; i < r; i++)
+			{
+				if ( jsoneq(jsonString, &tokens[i],node->portName) == 0)
+				{	
+					/* We may use strndup() to fetch string value */
+					int bufLen = tokens[i+1].end - tokens[i+1].start + 1;
+					char *buf = (char *)os_zalloc( sizeof(char)*bufLen );
+					if(buf==NULL)
+					{
+						LOG_DEBUG("Couldn't allocate memory.");
+						return false;
+					}
+			
+					int k,z=0;
+					for(k=tokens[i+1].start; k < tokens[i+1].end; k++)
+					{
+						buf[z]=jsonString[k];
+						z++;
+					}
+					buf[z]='\0';
+					LOG_DEBUG("Changing output:");
+					LOG_DEBUG_ARGS("\t%s: %s-->%s",node->portName, buf, node->value ? "true" : "false");
+					i++;
+					break;
+				}
+			}
+		}
+		node=node->next;
+	}
+
+	return true;
+}
+
+
 void print_gpio_nodes()
 {
 	gpio_node_t *node = gpio_head->next;
@@ -220,4 +285,25 @@ void print_gpio_nodes()
 			LOG_DEBUG_ARGS("OUTPUT: (%d,%s)",node->portNumber,node->portName);
 		node=node->next;
 	}
+}
+
+
+static void set_gpio_output_high(int portNum)
+{
+	int index = getIndex(portNum);
+	gpio_output_set(pin_bit[index], 0, pin_bit[index], 0);
+}
+
+static void set_gpio_output_low(int portNum)
+{
+	int index = getIndex(portNum);
+	gpio_output_set(0,pin_bit[index], pin_bit[index], 0);
+}
+
+static int jsoneq(const char *json, jsmntok_t *tok, const char *s) {
+	if (tok->type == JSMN_STRING && (int) strlen(s) == tok->end - tok->start &&
+			strncmp(json + tok->start, s, tok->end - tok->start) == 0) {
+		return 0;
+	}
+	return -1;
 }
