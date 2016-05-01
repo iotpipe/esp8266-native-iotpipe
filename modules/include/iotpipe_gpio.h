@@ -45,5 +45,5 @@ bool gpio_update_outputs(char *jsonString);
 static void set_gpio_output_high(int portNum);
 static void set_gpio_output_low(int portNum);
 static int jsoneq(const char *json, jsmntok_t *tok, const char *s);
-
+static void updateOutput(gpio_node_t *node, char *newValue);
 #endif

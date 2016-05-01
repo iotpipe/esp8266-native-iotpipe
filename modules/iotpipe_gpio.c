@@ -222,7 +222,6 @@ bool gpio_update_outputs(char *jsonString)
 
 	//r is the # of tokens returned.
 	int r = jsmn_parse(&parser, jsonString, strlen(jsonString), tokens, max_jsmn_tokens);
-
 	//if r < 1 or the first token isn't a JSMN_OBJECT
 	if (r < 1 || tokens[0].type!=JSMN_OBJECT)
 	{
@@ -239,14 +238,16 @@ bool gpio_update_outputs(char *jsonString)
 			//start at i = 1, since i = 0 is the JSMN_OBJECT token (aka the root)
 			for(i = 1; i < r; i++)
 			{
+				LOG_DEBUG_ARGS("i: %d",i);
 				if ( jsoneq(jsonString, &tokens[i],node->portName) == 0)
 				{	
 					/* We may use strndup() to fetch string value */
 					int bufLen = tokens[i+1].end - tokens[i+1].start + 1;
+
 					char *buf = (char *)os_zalloc( sizeof(char)*bufLen );
 					if(buf==NULL)
 					{
-						LOG_DEBUG("Couldn't allocate memory.");
+						LOG_DEBUG_ARGS("Couldn't allocate memory.  Needed %d bytes.", sizeof(char)*bufLen);
 						return false;
 					}
 			
@@ -257,9 +258,8 @@ bool gpio_update_outputs(char *jsonString)
 						z++;
 					}
 					buf[z]='\0';
-					LOG_DEBUG("Changing output:");
-					LOG_DEBUG_ARGS("\t%s: %s-->%s",node->portName, buf, node->value ? "true" : "false");
-					i++;
+					updateOutput(node,buf);
+					os_free(buf);
 					break;
 				}
 			}
@@ -270,6 +270,30 @@ bool gpio_update_outputs(char *jsonString)
 	return true;
 }
 
+static void updateOutput(gpio_node_t *node, char *newValue)
+{
+
+	if( strcmp(newValue,"low")==0 | strcmp(newValue,"high")==0 )
+	{
+		LOG_DEBUG("Updating output:");
+		LOG_DEBUG_ARGS("\t%s: %s-->%s", node->portName, node->value ? "high" : "low", newValue);
+	}
+	else
+	{
+		LOG_DEBUG_ARGS("Cannot update output because %s isn't a valid value.", newValue);
+	}
+
+	if(strcmp(newValue,"low")==0)
+	{
+		node->value = 0;
+		set_gpio_output_low(node->portNumber);
+	}
+	else if(strcmp(newValue,"high")==0)
+	{
+		node->value = 1;
+		set_gpio_output_high(node->portNumber);
+	}	
+}
 
 void print_gpio_nodes()
 {
@@ -300,9 +324,10 @@ static void set_gpio_output_low(int portNum)
 	gpio_output_set(0,pin_bit[index], pin_bit[index], 0);
 }
 
-static int jsoneq(const char *json, jsmntok_t *tok, const char *s) {
-	if (tok->type == JSMN_STRING && (int) strlen(s) == tok->end - tok->start &&
-			strncmp(json + tok->start, s, tok->end - tok->start) == 0) {
+static int jsoneq(const char *json, jsmntok_t *tok, const char *s) 
+{
+	if (tok->type == JSMN_STRING && (int) strlen(s) == tok->end - tok->start && strncmp(json + tok->start, s, tok->end - tok->start) == 0) 
+	{
 		return 0;
 	}
 	return -1;
