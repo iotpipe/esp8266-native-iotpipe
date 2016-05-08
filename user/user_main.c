@@ -14,6 +14,8 @@ void user_init(void)
 	os_delay_us(10);
 
 	os_delay_us(1000000);
+
+	LOG_DEBUG("Starting");
 	
 	iotpipe_init();
 	
@@ -21,11 +23,6 @@ void user_init(void)
 	iotpipe_addInputPort(4,"four");
 	iotpipe_addInputPort(15,"fifteen");
 	
-	iotpipe_addOutputPort(12,"twelve");
-	iotpipe_addOutputPort(13,"thirteen");
-	iotpipe_addOutputPort(14,"zero");
-
-
 	print_gpio_nodes();
 
 	char buf[256];
@@ -33,13 +30,6 @@ void user_init(void)
 
 	iotpipe_scan(buf,256);	
 	LOG_DEBUG_ARGS("Generated JSON: %s", buf);
-
-
-
-	char json[] = "{\"timestamp\": \"12345678\", \"twelve\":\"false\"}";
-	iotpipe_update_outputs(json);
-	
-
 }
 
 

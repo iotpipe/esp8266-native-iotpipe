@@ -56,14 +56,14 @@ bool ICACHE_FLASH_ATTR setPortAsInputWithName(int portNum, char *portName)
 		return false;
 	}
 	
-	if ( !isPortNameValid(portName,INPUT) )	
+	if ( !isPortNameValid(portName,DIGITAL_INPUT) )	
 	{
-		LOG_DEBUG_ARGS("Failed to set GPIO%d as input.  Portname of (%s) is already assigned to a port of type %d", portNum, portName, INPUT);
+		LOG_DEBUG_ARGS("Failed to set GPIO%d as input.  Portname of (%s) is already assigned to a port of type %d", portNum, portName, DIGITAL_INPUT);
 		return false;
 	}	
 	
 	
-	bool success = addNode(portNum, portName,INPUT);
+	bool success = addNode(portNum, portName,DIGITAL_INPUT);
 	if(success==false)
 		return false;
 
@@ -201,7 +201,7 @@ bool gpio_input_scan()
 			return false;
 		}
 		
-		if(node->gpio_type==0)
+		if(node->gpio_type==DIGITAL_INPUT)
 		{
 			node->value = GPIO_INPUT_GET(pin_num[index]);
 		}
@@ -301,8 +301,8 @@ void print_gpio_nodes()
 	while(node!=NULL)
 	{
 
-		if(node->gpio_type==INPUT)
-			LOG_DEBUG_ARGS("INPUT: (%d,%s)",node->portNumber,node->portName);
+		if(node->gpio_type==DIGITAL_INPUT)
+			LOG_DEBUG_ARGS("DIGITAL_INPUT: (%d,%s)",node->portNumber,node->portName);
 		else if(node->gpio_type==INTERRUPT)
 			LOG_DEBUG_ARGS("INTERRUPT: (%d,%s)",node->portNumber,node->portName);
 		else if(node->gpio_type==OUTPUT)

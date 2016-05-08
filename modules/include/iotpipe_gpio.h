@@ -14,14 +14,14 @@ typedef struct input_node
 	int portNumber;
 	char *portName;
 	int gpio_type;
-	int value;
+	char *value;
 	struct input_node * next;
 } gpio_node_t;
 gpio_node_t *gpio_head;
 
 
 
-typedef enum {INPUT, INTERRUPT, OUTPUT} gpio_mode;
+typedef enum {DIGITAL_INPUT, ANALOG_INPUT, INTERRUPT, OUTPUT} gpio_mode;
 
 
 //we pick a different name to not be confused with gpio_init() in gpio.h

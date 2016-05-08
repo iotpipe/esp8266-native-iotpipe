@@ -11,6 +11,7 @@
 #include "iotpipe_utils.h"
 #include "iotpipe_json.h"
 #include "iotpipe_gpio.h"
+#include "iotpipe_sntp.h"
 #include "osapi.h"
 #include "mem.h"
 #include "string.h"
@@ -62,6 +63,17 @@ bool ICACHE_FLASH_ATTR createJsonForScan(char *buf, int bufLength)
 		return true;
 
 	}
+	
+	//Add node for timestamp
+	char timeBuf[16];
+	success = getEpochTimeInMs(timeBuf,16); 
+	if(success == false)
+	{
+		LOG_DEBUG("Failed to get SNTP time to put in JSON payload.");
+		return false;
+	}
+	add_json_node("timestamp", 1234);
+
 	success = stringify(buf, bufLength);
 	free_json();
 	return success;
