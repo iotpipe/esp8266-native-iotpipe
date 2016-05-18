@@ -3,20 +3,22 @@
 #include "ets_sys.h"
 #include "driver/uart.h"
 #include "osapi.h"
-#include "mqtt.h"
-#include "wifi.h"
-#include "config.h"
-#include "debug.h"
+//#include "mqtt.h"
+//#include "wifi.h"
+//#include "config.h"
+//#include "debug.h"
 #include "gpio.h"
 #include "user_interface.h"
-#include "mem.h"
+//#include "mem.h"
 #include "iotpipe.h"
 
+/*
 MQTT_Client mqttClient;
 
 void wifiConnectCb(uint8_t status)
 {
     if(status == STATION_GOT_IP){
+	os_printf("We got wifi\r\n");
         MQTT_Connect(&mqttClient);
     } else {
         MQTT_Disconnect(&mqttClient);
@@ -25,7 +27,7 @@ void wifiConnectCb(uint8_t status)
 void mqttConnectedCb(uint32_t *args)
 {
     MQTT_Client* client = (MQTT_Client*)args;
-    INFO("MQTT: Connected\r\n");
+    os_printf("MQTT: Connected\r\n");
     MQTT_Subscribe(client, "/test1818/onoff", 0);
 }
 
@@ -60,13 +62,14 @@ void mqttDataCb(uint32_t *args, const char* topic, uint32_t topic_len, const cha
     os_free(topicBuf);
     os_free(dataBuf);
 }
-
+*/
 
 void user_init(void)
 {
 	uart_init(BIT_RATE_115200, BIT_RATE_115200);
 	os_delay_us(1000000);
 
+/*
 	CFG_Load();
 
 	MQTT_InitConnection(&mqttClient, sysCfg.mqtt_host, sysCfg.mqtt_port, sysCfg.security);
@@ -82,9 +85,9 @@ void user_init(void)
 	MQTT_OnData(&mqttClient, mqttDataCb);
 
 	WIFI_Connect(sysCfg.sta_ssid, sysCfg.sta_pwd, wifiConnectCb);
-
+*/
 	iotpipe_init();
-	iotpipe_addOutputPort(12,"LED");
+	iotpipe_addDigitalOutputPort(12,"LED");
 
-	INFO("\r\nSystem started ...\r\n");
+	os_printf("\r\nSystem started ...\r\n");
 }

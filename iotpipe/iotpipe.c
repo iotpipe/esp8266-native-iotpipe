@@ -20,22 +20,23 @@ bool iotpipe_init()
 }
 
 //Adds a GPIO to a list of input ports
-bool iotpipe_addInputPort(int portNum, char* portName)
+bool iotpipe_addDigitalInputPort(int portNum, char* portName)
 {
-	bool success = setPortAsInputWithName(portNum, portName);
+	bool success = setPortAsDigitalInput(portNum, portName);
 	return success;
 }
 
-//Adds a GPIO to a list of interruptable ports
-bool iotpipe_addInterruptablePort(int portNum, char *portName)
+//Adds an analog GPIO to list of input ports
+bool iotpipe_addAnalogInputPort(char *portName)
 {
-
+	bool success = setPortAsAnalogInput(portName);
+	return success;
 }
 
 //Adds a GPIO to a list of output ports
-bool iotpipe_addOutputPort(int portNum, char *portName)
+bool iotpipe_addDigitalOutputPort(int portNum, char *portName)
 {
-	bool success = setPortAsOutputWithName(portNum, portName);
+	bool success = setPortAsDigitalOutput(portNum, portName);
 	return success;
 }
 

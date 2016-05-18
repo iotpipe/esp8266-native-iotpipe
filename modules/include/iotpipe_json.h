@@ -24,7 +24,7 @@ json_node_t *json_head;
 bool ICACHE_FLASH_ATTR init_json();
 
 //Makes it easy to add nodes to a json object
-static bool ICACHE_FLASH_ATTR add_json_node(char *key, int value);
+static bool ICACHE_FLASH_ATTR add_json_node(char *key, char *value);
 
 //Converts json object into string.  
 static bool ICACHE_FLASH_ATTR stringify(char * buffer, int len);

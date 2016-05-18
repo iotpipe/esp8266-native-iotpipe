@@ -35,6 +35,10 @@ static bool ICACHE_FLASH_ATTR isValidGPIO(int portNum)
 //GPIOs of the same type cannot have the same name
 static bool ICACHE_FLASH_ATTR isPortNameValid(char *portName, int type)
 {
+	//if portname is empty then user is asking for one to be auto-assigned.
+	if( strcmp(portName,"")==0)
+		return true;
+
 	gpio_node_t *node = gpio_head;
 	while(node->next!=NULL)
 	{
@@ -44,10 +48,11 @@ static bool ICACHE_FLASH_ATTR isPortNameValid(char *portName, int type)
 		}	
 		node=node->next;
 	}
+	return true;
 }
 
 
-bool ICACHE_FLASH_ATTR setPortAsInputWithName(int portNum, char *portName)
+bool ICACHE_FLASH_ATTR setPortAsDigitalInput(int portNum, char *portName)
 {
 	
 	if( !isValidGPIO(portNum) )
@@ -75,8 +80,24 @@ bool ICACHE_FLASH_ATTR setPortAsInputWithName(int portNum, char *portName)
 	return true;
 }
 
+bool ICACHE_FLASH_ATTR setPortAsAnalogInput(char *portName)
+{
+	
+	if ( !isPortNameValid(portName,ANALOG_INPUT) )	
+	{
+		LOG_DEBUG_ARGS("Failed to set ADC as input.  Portname of (%s) is already assigned to a port of type %d",  portName, DIGITAL_INPUT);
+		return false;
+	}	
+	
+	
+	bool success = addNode(-1, portName,ANALOG_INPUT);
+	if(success==false)
+		return false;
 
-bool ICACHE_FLASH_ATTR setPortAsOutputWithName(int portNum, char *portName)
+	return true;
+}
+
+bool ICACHE_FLASH_ATTR setPortAsDigitalOutput(int portNum, char *portName)
 {
 	if( !isValidGPIO(portNum) )
 	{
@@ -84,13 +105,13 @@ bool ICACHE_FLASH_ATTR setPortAsOutputWithName(int portNum, char *portName)
 		return false;
 	}
 
-	if ( !isPortNameValid(portName, OUTPUT) )	
+	if ( !isPortNameValid(portName, DIGITAL_OUTPUT) )	
 	{
-		LOG_DEBUG_ARGS("%s is already assigned to a port of type %d", portName, OUTPUT);
+		LOG_DEBUG_ARGS("%s is already assigned to a port of type %d", portName, DIGITAL_OUTPUT);
 		return false;
 	}
 
-	bool success = addNode(portNum, portName, OUTPUT);
+	bool success = addNode(portNum, portName, DIGITAL_OUTPUT);
 	if(success==false)
 		return false;
 
@@ -106,10 +127,6 @@ bool ICACHE_FLASH_ATTR setPortAsOutputWithName(int portNum, char *portName)
 
 }
 
-bool ICACHE_FLASH_ATTR setPortAsInterruptableWithName(int portNum, char *portName)
-{
-	LOG_DEBUG("Interrupt not yet supported.");
-}
 
 static int ICACHE_FLASH_ATTR getIndex(int portNum)
 {
@@ -127,21 +144,35 @@ static int ICACHE_FLASH_ATTR getIndex(int portNum)
 static bool ICACHE_FLASH_ATTR addNode(int portNumber, char *portName, int type)
 {
 
-	//If user doesn't specify port name, then create one of the form  "GPION" where N is the port number
-	if(strcmp(portName,"")==0)
+	if(type==DIGITAL_INPUT | type==DIGITAL_OUTPUT)
 	{
-		char buf1[16];
-		char buf2[16];
-		flatten_string(buf1,16);
-		flatten_string(buf2,16);
 
-		itoa(portNumber,buf1);		
+		//If user doesn't specify port name, then create one of the form  "GPION" where N is the port number
+		if(strcmp(portName,"")==0)
+		{
+			char buf1[16];
+			char buf2[16];
+			flatten_string(buf1,16);
+			flatten_string(buf2,16);
 
-		strcat(buf2,"GPIO");
-		strcat(buf2,buf1);
-		portName = (char *)os_zalloc(sizeof(char)*16);
-		strcpy(portName,buf2);
-		
+			itoa(portNumber,buf1);		
+
+			strcat(buf2,"GPIO");
+			strcat(buf2,buf1);
+			portName = (char *)os_zalloc(sizeof(char)*16);
+			strcpy(portName,buf2);
+			
+		}
+	}
+	else if(type==ANALOG_INPUT)
+	{
+		//If user doesn't specify an analog_input port name then they are given "ADC"
+		if(strcmp(portName,"")==0)
+		{
+			portName = (char *)os_zalloc(sizeof(char)*4);
+			flatten_string(portName,4);
+			strcpy(portName,"ADC");
+		}
 	}
 
 
@@ -200,10 +231,14 @@ bool gpio_input_scan()
 			LOG_DEBUG_ARGS("GPIO %d is not a valid GPIO", node->portNumber);
 			return false;
 		}
-		
+	
 		if(node->gpio_type==DIGITAL_INPUT)
 		{
 			node->value = GPIO_INPUT_GET(pin_num[index]);
+		}
+		else if(node->gpio_type==ANALOG_INPUT)
+		{
+			node->value = system_adc_read();
 		}
 		node=node->next;
 	}
@@ -233,7 +268,7 @@ bool gpio_update_outputs(char *jsonString)
 	gpio_node_t *node = gpio_head->next;
 	while(node!=NULL)
 	{
-		if(node->gpio_type==OUTPUT)
+		if(node->gpio_type==DIGITAL_OUTPUT)
 		{
 			//start at i = 1, since i = 0 is the JSMN_OBJECT token (aka the root)
 			for(i = 1; i < r; i++)
@@ -303,9 +338,9 @@ void print_gpio_nodes()
 
 		if(node->gpio_type==DIGITAL_INPUT)
 			LOG_DEBUG_ARGS("DIGITAL_INPUT: (%d,%s)",node->portNumber,node->portName);
-		else if(node->gpio_type==INTERRUPT)
-			LOG_DEBUG_ARGS("INTERRUPT: (%d,%s)",node->portNumber,node->portName);
-		else if(node->gpio_type==OUTPUT)
+		else if(node->gpio_type==ANALOG_INPUT)
+			LOG_DEBUG_ARGS("ANALOG_INPUT: (%d,%s)",node->portNumber,node->portName);
+		else if(node->gpio_type==DIGITAL_OUTPUT)
 			LOG_DEBUG_ARGS("OUTPUT: (%d,%s)",node->portNumber,node->portName);
 		node=node->next;
 	}

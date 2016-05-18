@@ -15,8 +15,8 @@
 # Output directors to store intermediate compiled files
 # relative to the project directory
 BASE_DIR        = ../../
-BUILD_BASE	= $(BASE_DIR)/build
-FW_BASE		= $(BASE_DIR)/firmware
+BUILD_BASE	= build
+FW_BASE		= firmware
 
 # base directory for the compiler
 XTENSA_TOOLS_ROOT ?= $(ESP_SDK_ROOT)/xtensa-lx106-elf/bin
@@ -37,12 +37,8 @@ MODULES = $(BASE_DIR)/driver user $(BASE_DIR)/modules $(BASE_DIR)/iotpipe $(BASE
 EXTRA_INCDIR1   = include 
 EXTRA_INCDIR2   = $(BASE_DIR)/esp_mqtt/mqtt/include $(BASE_DIR)/esp_mqtt/include $(BASE_DIR)/esp_mqtt/modules/include $(BASE_DIR)/jsmn/
 
-#MODULES		= driver mqtt user modules
-#EXTRA_INCDIR    = include $(SDK_BASE)/../include
-
-
 # libraries used in this project, mainly provided by the SDK
-LIBS		= c gcc hal pp phy net80211 lwip wpa main ssl
+LIBS		= c gcc hal pp phy net80211 lwip wpa main ssl crypto
 
 # compiler flags using during compilation of source files
 CFLAGS		= -Os -g -O2 -Wpointer-arith -Wundef -Werror -Wl,-EL -fno-inline-functions -nostdlib -mlongcalls -mtext-section-literals  -D__ets__ -DICACHE_FLASH
@@ -51,7 +47,9 @@ CFLAGS		= -Os -g -O2 -Wpointer-arith -Wundef -Werror -Wl,-EL -fno-inline-functio
 LDFLAGS		= -nostdlib -Wl,--no-check-sections -u call_user_start -Wl,-static
 
 # linker script used for the above linkier step
-LD_SCRIPT	= eagle.app.v6.ld
+# Choosing the right linker script is important to ensure you can utilize all of the flash memory on your device when compiled binaries get large.
+# You can find various configurations in the ld/ directory of $(SDK_BASE)
+LD_SCRIPT	= eagle.app.v6.ld 
 
 # various paths from the SDK used in this project
 SDK_LIBDIR	= lib

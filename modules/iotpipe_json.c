@@ -41,11 +41,16 @@ bool ICACHE_FLASH_ATTR createJsonForScan(char *buf, int bufLength)
 	gpio_node_t *gpio_node = gpio_head->next;
 	bool success;
 	bool atleastOneInput = false;
+	char valueBuf[16];
 	while(gpio_node!=NULL)
 	{
 		if(gpio_node->gpio_type==0)
 		{
-			success = add_json_node(gpio_node->portName, gpio_node->value);
+
+			//convert integer to string
+			flatten_string(valueBuf,16);
+			itoa(gpio_node->value,valueBuf);
+			success = add_json_node(gpio_node->portName, valueBuf);
 			if(success==false)
 			{
 				LOG_DEBUG("Failed to construct json node");
@@ -72,7 +77,7 @@ bool ICACHE_FLASH_ATTR createJsonForScan(char *buf, int bufLength)
 		LOG_DEBUG("Failed to get SNTP time to put in JSON payload.");
 		return false;
 	}
-	add_json_node("timestamp", 1234);
+	add_json_node("timestamp", timeBuf);
 
 	success = stringify(buf, bufLength);
 	free_json();
@@ -98,14 +103,8 @@ static void ICACHE_FLASH_ATTR print_json()
 	}
 }
 
-static bool ICACHE_FLASH_ATTR add_json_node(char *key, int value)
+static bool ICACHE_FLASH_ATTR add_json_node(char *key, char *value)
 {
-
-	//convert integer to string
-	char buf[16];
-	flatten_string(buf,16);
-	itoa(value,buf);
-
 
 	//find end of list
 	json_node_t *node = json_head;
@@ -125,7 +124,7 @@ static bool ICACHE_FLASH_ATTR add_json_node(char *key, int value)
 	
 	//add info to the new node
 	strcpy(new_node->key,key);
-	strcpy(new_node->value,buf);
+	strcpy(new_node->value,value);
 	new_node->next = NULL; 
 	node->next = new_node;
 	return true;

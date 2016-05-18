@@ -14,21 +14,21 @@ typedef struct input_node
 	int portNumber;
 	char *portName;
 	int gpio_type;
-	char *value;
+	int value;
 	struct input_node * next;
 } gpio_node_t;
 gpio_node_t *gpio_head;
 
 
 
-typedef enum {DIGITAL_INPUT, ANALOG_INPUT, INTERRUPT, OUTPUT} gpio_mode;
+typedef enum {DIGITAL_INPUT, ANALOG_INPUT, DIGITAL_OUTPUT} gpio_mode;
 
 
 //we pick a different name to not be confused with gpio_init() in gpio.h
 bool ICACHE_FLASH_ATTR init_gpio();
-bool ICACHE_FLASH_ATTR setPortAsInputWithName(int portNum, char *portName);
-bool ICACHE_FLASH_ATTR setPortAsOutputWithName(int portNum, char *portName);
-bool ICACHE_FLASH_ATTR setPortAsInterruptableWithName(int portNum, char *portName);
+bool ICACHE_FLASH_ATTR setPortAsDigitalInput(int portNum, char *portName);
+bool ICACHE_FLASH_ATTR setPortAsAnalogInput(char *portName);
+bool ICACHE_FLASH_ATTR setPortAsDigitalOutput(int portNum, char *portName);
 
 static int ICACHE_FLASH_ATTR getIndex(int pin);
 static bool ICACHE_FLASH_ATTR addNode(int pin, char *portName, int type);

@@ -19,9 +19,9 @@ void user_init(void)
 	
 	iotpipe_init();
 	
-	iotpipe_addInputPort(5,"five");
-	iotpipe_addInputPort(4,"four");
-	iotpipe_addInputPort(15,"fifteen");
+	iotpipe_addDigitalInputPort(5,"five");
+	iotpipe_addDigitalInputPort(4,"four");
+	iotpipe_addDigitalInputPort(15,"fifteen");
 	
 	print_gpio_nodes();
 

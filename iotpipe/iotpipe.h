@@ -11,17 +11,17 @@ bool iotpipe_init();
 //Adds a GPIO to a list of input ports
 //Arguments:  GPIO # and desired name of the port
 //Return: True/False to designate a success or failure
-bool iotpipe_addInputPort(int portNum, char *portName);
+bool iotpipe_addDigitalInputPort(int portNum, char *portName);
 
-//Adds a GPIO to a list of interruptable ports
-//Arguments:  GPIO # and desired name of the port
+//Adds a Analog port to list of input ports
+//Arguments: Desired name of port
 //Return: True/False to designate a success or failure
-bool iotpipe_addInterruptablePort(int portNum, char *portName);
+bool iotpipe_addAnalogInputPort(char *portName);
 
 //Adds a GPIO to a list of output ports
 //Arguments:  GPIO # and desired name of the port
 //Return: True/False to designate a success or failure
-bool iotpipe_addOutputPort(int portNum, char* portName);
+bool iotpipe_addDigitalOutputPort(int portNum, char* portName);
 
 //Scans all input ports and creates a JSON payload of thier values which can be read by IoT Pipe web service
 //Arguments:  The buffer to which the JSON payload will be written as well as the maximum length of the buffer
